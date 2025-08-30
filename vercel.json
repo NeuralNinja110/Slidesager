@@ -9,7 +9,8 @@
           "server/**",
           "shared/**",
           "temp/**"
-        ]
+        ],
+        "maxLambdaSize": "50mb"
       }
     },
     {
@@ -30,11 +31,6 @@
       "dest": "/dist/public/$1"
     }
   ],
-  "functions": {
-    "api/index.ts": {
-      "maxDuration": 60
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   }
