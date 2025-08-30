@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark mode - Professional theme */
+  --background: hsl(0, 0%, 8%);
+  --foreground: hsl(0, 0%, 98%);
+  --card: hsl(0, 0%, 12%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --popover: hsl(0, 0%, 12%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --primary: hsl(142, 76%, 36%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(0, 0%, 16%);
+  --secondary-foreground: hsl(0, 0%, 90%);
+  --muted: hsl(0, 0%, 16%);
+  --muted-foreground: hsl(0, 0%, 60%);
+  --accent: hsl(142, 76%, 36%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 62%, 50%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --border: hsl(0, 0%, 20%);
+  --input: hsl(0, 0%, 16%);
+  --ring: hsl(142, 76%, 36%);
+  --radius: 0.75rem;
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+.light {
+  /* Light mode - Professional theme */
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(0, 0%, 5%);
+  --card: hsl(0, 0%, 98%);
+  --card-foreground: hsl(0, 0%, 5%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 5%);
+  --primary: hsl(142, 76%, 36%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(0, 0%, 96%);
+  --secondary-foreground: hsl(0, 0%, 10%);
+  --muted: hsl(0, 0%, 96%);
+  --muted-foreground: hsl(0, 0%, 40%);
+  --accent: hsl(142, 76%, 36%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --border: hsl(0, 0%, 88%);
+  --input: hsl(0, 0%, 96%);
+  --ring: hsl(142, 76%, 36%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+.glow-effect {
+  box-shadow: 0 0 20px hsla(262, 83%, 58%, 0.3);
+}
+
+.upload-zone {
+  transition: all 0.3s ease;
+  border: 2px dashed hsl(217, 32%, 17%);
+}
+
+.upload-zone:hover {
+  border-color: hsl(262, 83%, 58%);
+  background-color: hsla(262, 83%, 58%, 0.05);
+}
+
+.upload-zone.drag-over {
+  border-color: hsl(262, 83%, 58%);
+  background-color: hsla(262, 83%, 58%, 0.1);
+  transform: scale(1.02);
+}
+
+.slide-nav-btn {
+  transition: all 0.2s ease;
+}
+
+.slide-nav-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, hsl(217, 91%, 60%), hsl(262, 83%, 58%));
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.floating-label {
+  transition: all 0.2s ease;
+}
+
+.floating-label.active {
+  transform: translateY(-24px) scale(0.85);
+  color: hsl(262, 83%, 58%);
+}
