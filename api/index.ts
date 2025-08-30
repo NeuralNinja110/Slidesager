@@ -323,4 +323,7 @@ app.get('/api/environment', (_req, res) => {
   });
 });
 
-export default app;
+// For Vercel serverless function
+export default function handler(req: any, res: any) {
+  return app(req, res);
+}
