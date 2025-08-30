@@ -11,6 +11,7 @@ import { LLMProvider, Model, SlideCountOption } from "@shared/schema";
 
 export default function Home() {
   const [currentPresentationId, setCurrentPresentationId] = useState<string | null>(null);
+  const [isViewingExisting, setIsViewingExisting] = useState<boolean>(false);
   const [contentData, setContentData] = useState<{ content: string; guidance?: string }>({
     content: "",
     guidance: ""
@@ -25,7 +26,10 @@ export default function Home() {
 
   const handleContentChange = (content: string, guidance?: string) => {
     setContentData({ content, guidance });
-    setCurrentPresentationId(null);
+    // Only clear the presentation if we're not viewing an existing one
+    if (!isViewingExisting) {
+      setCurrentPresentationId(null);
+    }
   };
 
   const handleConfigChange = (config: { provider: LLMProvider; model: Model; apiKey: string; slideCountOption: SlideCountOption }) => {
@@ -34,6 +38,22 @@ export default function Home() {
 
   const handleTemplateUpload = (file: File | null) => {
     setTemplateFile(file);
+  };
+
+  const handlePresentationSelect = (id: string) => {
+    setCurrentPresentationId(id);
+    setIsViewingExisting(true);
+  };
+
+  const handleNewPresentationGenerated = (id: string) => {
+    setCurrentPresentationId(id);
+    setIsViewingExisting(false);
+  };
+
+  const handleStartNew = () => {
+    setCurrentPresentationId(null);
+    setIsViewingExisting(false);
+    setContentData({ content: "", guidance: "" });
   };
 
   return (
@@ -76,7 +96,11 @@ export default function Home() {
         <div className="grid lg:grid-cols-12 gap-8">
           {/* Left Panel - Input Controls */}
           <div className="lg:col-span-5 space-y-6">
-            <TextInputSection onContentChange={handleContentChange} />
+            <TextInputSection 
+              onContentChange={handleContentChange}
+              initialContent={contentData.content}
+              initialGuidance={contentData.guidance}
+            />
             <LLMConfigSection onConfigChange={handleConfigChange} />
             <TemplateUploadSection onTemplateUpload={handleTemplateUpload} />
           </div>
@@ -85,16 +109,18 @@ export default function Home() {
           <div className="lg:col-span-7 space-y-6">
             <PreviewSection 
               presentationId={currentPresentationId}
-              onPresentationGenerated={setCurrentPresentationId}
+              onPresentationGenerated={handleNewPresentationGenerated}
               contentData={contentData}
               llmConfig={llmConfig}
               templateFile={templateFile}
+              isViewingExisting={isViewingExisting}
+              onStartNew={handleStartNew}
             />
             
             {currentPresentationId && (
               <DownloadControls presentationId={currentPresentationId} />
             )}
-            <RecentGenerations onPresentationSelect={setCurrentPresentationId} />
+            <RecentGenerations onPresentationSelect={handlePresentationSelect} />
           </div>
         </div>
       </div>

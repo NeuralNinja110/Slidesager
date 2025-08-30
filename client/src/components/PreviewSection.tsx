@@ -13,6 +13,8 @@ interface PreviewSectionProps {
   contentData: { content: string; guidance?: string };
   llmConfig: { provider: LLMProvider; model: Model; apiKey: string; slideCountOption: SlideCountOption } | null;
   templateFile: File | null;
+  isViewingExisting?: boolean;
+  onStartNew?: () => void;
 }
 
 interface GenerationData {
@@ -30,7 +32,9 @@ export default function PreviewSection({
   onPresentationGenerated, 
   contentData, 
   llmConfig, 
-  templateFile 
+  templateFile,
+  isViewingExisting = false,
+  onStartNew
 }: PreviewSectionProps) {
   const [currentSlide, setCurrentSlide] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -98,7 +102,11 @@ export default function PreviewSection({
     },
   });
 
-  const canGenerate = contentData.content.trim() && llmConfig?.apiKey.trim();
+  const canGenerate = contentData.content.trim() && 
+                    llmConfig && 
+                    llmConfig.apiKey.trim() && 
+                    llmConfig.provider && 
+                    llmConfig.model;
 
   const handleGenerate = () => {
     if (!canGenerate) {
@@ -160,6 +168,11 @@ export default function PreviewSection({
           <div className="flex items-center space-x-2">
             <Monitor className="h-5 w-5 text-accent" />
             <h2 className="text-lg font-semibold">Live Preview</h2>
+            {isViewingExisting && (
+              <span className="text-xs bg-blue-500/20 text-blue-600 px-2 py-1 rounded-full">
+                Viewing Existing
+              </span>
+            )}
             {totalSlides > 0 && (
               <span 
                 className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full"
@@ -188,6 +201,18 @@ export default function PreviewSection({
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+            {isViewingExisting && onStartNew && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-primary"
+                title="Start New Presentation"
+                onClick={onStartNew}
+                data-testid="button-start-new"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

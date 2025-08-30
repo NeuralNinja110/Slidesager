@@ -66,11 +66,13 @@ export default function RecentGenerations({ onPresentationSelect }: RecentGenera
             presentations.map((presentation: PresentationType) => (
               <div 
                 key={presentation.id}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-md hover:bg-muted/70 transition-colors cursor-pointer"
-                onClick={() => onPresentationSelect(presentation.id)}
+                className="flex items-center justify-between p-3 bg-muted/50 rounded-md hover:bg-muted/70 transition-colors"
                 data-testid={`presentation-item-${presentation.id}`}
               >
-                <div className="flex items-center space-x-3">
+                <div 
+                  className="flex items-center space-x-3 flex-1 cursor-pointer"
+                  onClick={() => onPresentationSelect(presentation.id)}
+                >
                   <Presentation className="h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium" data-testid="text-presentation-title">
@@ -81,16 +83,13 @@ export default function RecentGenerations({ onPresentationSelect }: RecentGenera
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 ml-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-primary transition-colors"
                     title="Preview"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPresentationSelect(presentation.id);
-                    }}
+                    onClick={() => onPresentationSelect(presentation.id)}
                     data-testid="button-preview-presentation"
                   >
                     <Eye className="h-4 w-4" />
@@ -99,12 +98,8 @@ export default function RecentGenerations({ onPresentationSelect }: RecentGenera
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-accent transition-colors"
-                    title="Download"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // This would trigger download - for now just select
-                      onPresentationSelect(presentation.id);
-                    }}
+                    title="View & Download"
+                    onClick={() => onPresentationSelect(presentation.id)}
                     data-testid="button-download-presentation"
                   >
                     <Download className="h-4 w-4" />

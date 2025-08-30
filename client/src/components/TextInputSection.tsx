@@ -6,18 +6,27 @@ import { Edit } from "lucide-react";
 
 interface TextInputSectionProps {
   onContentChange: (content: string, guidance?: string) => void;
+  initialContent?: string;
+  initialGuidance?: string;
 }
 
-export default function TextInputSection({ onContentChange }: TextInputSectionProps) {
-  const [content, setContent] = useState("");
-  const [guidance, setGuidance] = useState("");
+export default function TextInputSection({ onContentChange, initialContent = "", initialGuidance = "" }: TextInputSectionProps) {
+  const [content, setContent] = useState(initialContent);
+  const [guidance, setGuidance] = useState(initialGuidance);
   const [contentFocused, setContentFocused] = useState(false);
   const [guidanceFocused, setGuidanceFocused] = useState(false);
 
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const guidanceRef = useRef<HTMLInputElement>(null);
 
+  // Update local state when initial values change
   useEffect(() => {
+    setContent(initialContent);
+    setGuidance(initialGuidance);
+  }, [initialContent, initialGuidance]);
+
+  useEffect(() => {
+    // Direct call without debouncing for immediate UI updates
     onContentChange(content, guidance);
   }, [content, guidance, onContentChange]);
 
