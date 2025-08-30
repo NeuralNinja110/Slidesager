@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+
+# Development files
+*.log
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build artifacts
+dist
+.next
+
+# IDE files
+.vscode
+.idea
+
+# Temporary files
+temp/*
+!temp/.gitkeep
+
+# OS files
+Thumbs.db
+
+# Local development
+.replit
+replit.nix
