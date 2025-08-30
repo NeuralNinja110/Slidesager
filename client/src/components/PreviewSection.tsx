@@ -221,7 +221,15 @@ export default function PreviewSection({
               className="w-full h-full border-0"
               title="Presentation Preview"
               data-testid="iframe-preview"
+              onLoad={() => console.log('Preview loaded successfully')}
+              onError={(e) => console.error('Preview loading error:', e)}
             />
+            {/* Fallback for iframe loading issues */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/20 text-white px-3 py-1 rounded text-sm">
+                Loading presentation...
+              </div>
+            </div>
           </div>
         ) : (
           <div 

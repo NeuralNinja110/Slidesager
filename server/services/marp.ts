@@ -70,43 +70,75 @@ blockquote {
   async generateHTML(marpContent: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const tempDir = path.join(process.cwd(), "temp");
-      const inputFile = path.join(tempDir, `presentation-${Date.now()}.md`);
-      const outputFile = path.join(tempDir, `presentation-${Date.now()}.html`);
+      const timestamp = Date.now();
+      const inputFile = path.join(tempDir, `presentation-${timestamp}.md`);
+      const outputFile = path.join(tempDir, `presentation-${timestamp}.html`);
+
+      console.log(`Generating HTML with Marp CLI: ${inputFile} -> ${outputFile}`);
 
       // Ensure temp directory exists
       fs.mkdir(tempDir, { recursive: true }).then(() => {
         // Write Marp content to file
+        console.log(`Writing ${marpContent.length} characters to ${inputFile}`);
         return fs.writeFile(inputFile, marpContent);
       }).then(() => {
         // Run Marp CLI
-        const marp = spawn("npx", ["@marp-team/marp-cli", inputFile, "-o", outputFile, "--html"]);
+        console.log('Running Marp CLI for HTML generation...');
+        const marp = spawn("npx", ["@marp-team/marp-cli", inputFile, "-o", outputFile, "--html"], {
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        marp.stdout?.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        marp.stderr?.on('data', (data) => {
+          stderr += data.toString();
+        });
         
         marp.on("close", async (code) => {
+          console.log(`Marp CLI finished with code: ${code}`);
+          if (stdout) console.log('Marp stdout:', stdout);
+          if (stderr) console.log('Marp stderr:', stderr);
+          
           if (code === 0) {
             try {
               const htmlContent = await fs.readFile(outputFile, "utf-8");
+              console.log(`Generated HTML file size: ${htmlContent.length} characters`);
+              
               // Cleanup temp files
               fs.unlink(inputFile).catch(console.error);
               fs.unlink(outputFile).catch(console.error);
               resolve(htmlContent);
             } catch (error) {
+              console.error('Error reading HTML output:', error);
               reject(error);
             }
           } else {
-            reject(new Error(`Marp CLI exited with code ${code}`));
+            reject(new Error(`Marp CLI exited with code ${code}. Stderr: ${stderr}`));
           }
         });
 
-        marp.on("error", reject);
-      }).catch(reject);
+        marp.on("error", (error) => {
+          console.error('Marp CLI spawn error:', error);
+          reject(error);
+        });
+      }).catch((error) => {
+        console.error('Error setting up Marp generation:', error);
+        reject(error);
+      });
     });
   }
 
   async generatePPTX(marpContent: string, slideRanges?: SlideRange[]): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const tempDir = path.join(process.cwd(), "temp");
-      const inputFile = path.join(tempDir, `presentation-${Date.now()}.md`);
-      const outputFile = path.join(tempDir, `presentation-${Date.now()}.pptx`);
+      const timestamp = Date.now();
+      const inputFile = path.join(tempDir, `presentation-${timestamp}.md`);
+      const outputFile = path.join(tempDir, `presentation-${timestamp}.pptx`);
 
       // Filter slides if ranges specified
       let filteredContent = marpContent;
@@ -114,37 +146,67 @@ blockquote {
         filteredContent = this.filterSlidesByRange(marpContent, slideRanges);
       }
 
+      console.log(`Generating PPTX with Marp CLI: ${inputFile} -> ${outputFile}`);
+
       fs.mkdir(tempDir, { recursive: true }).then(() => {
         return fs.writeFile(inputFile, filteredContent);
       }).then(() => {
-        const marp = spawn("npx", ["@marp-team/marp-cli", inputFile, "-o", outputFile, "--pptx"]);
+        console.log('Running Marp CLI for PPTX generation...');
+        const marp = spawn("npx", ["@marp-team/marp-cli", inputFile, "-o", outputFile, "--pptx"], {
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        marp.stdout?.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        marp.stderr?.on('data', (data) => {
+          stderr += data.toString();
+        });
         
         marp.on("close", async (code) => {
+          console.log(`Marp CLI PPTX finished with code: ${code}`);
+          if (stdout) console.log('Marp stdout:', stdout);
+          if (stderr) console.log('Marp stderr:', stderr);
+          
           if (code === 0) {
             try {
               const pptxBuffer = await fs.readFile(outputFile);
+              console.log(`Generated PPTX file size: ${pptxBuffer.length} bytes`);
+              
               // Cleanup temp files
               fs.unlink(inputFile).catch(console.error);
               fs.unlink(outputFile).catch(console.error);
               resolve(pptxBuffer);
             } catch (error) {
+              console.error('Error reading PPTX output:', error);
               reject(error);
             }
           } else {
-            reject(new Error(`Marp CLI exited with code ${code}`));
+            reject(new Error(`Marp CLI exited with code ${code}. Stderr: ${stderr}`));
           }
         });
 
-        marp.on("error", reject);
-      }).catch(reject);
+        marp.on("error", (error) => {
+          console.error('Marp CLI PPTX spawn error:', error);
+          reject(error);
+        });
+      }).catch((error) => {
+        console.error('Error setting up PPTX generation:', error);
+        reject(error);
+      });
     });
   }
 
   async generatePDF(marpContent: string, slideRanges?: SlideRange[]): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const tempDir = path.join(process.cwd(), "temp");
-      const inputFile = path.join(tempDir, `presentation-${Date.now()}.md`);
-      const outputFile = path.join(tempDir, `presentation-${Date.now()}.pdf`);
+      const timestamp = Date.now();
+      const inputFile = path.join(tempDir, `presentation-${timestamp}.md`);
+      const outputFile = path.join(tempDir, `presentation-${timestamp}.pdf`);
 
       // Filter slides if ranges specified
       let filteredContent = marpContent;
@@ -152,29 +214,58 @@ blockquote {
         filteredContent = this.filterSlidesByRange(marpContent, slideRanges);
       }
 
+      console.log(`Generating PDF with Marp CLI: ${inputFile} -> ${outputFile}`);
+
       fs.mkdir(tempDir, { recursive: true }).then(() => {
         return fs.writeFile(inputFile, filteredContent);
       }).then(() => {
-        const marp = spawn("npx", ["@marp-team/marp-cli", inputFile, "-o", outputFile, "--pdf"]);
+        console.log('Running Marp CLI for PDF generation...');
+        const marp = spawn("npx", ["@marp-team/marp-cli", inputFile, "-o", outputFile, "--pdf"], {
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+        
+        let stdout = '';
+        let stderr = '';
+        
+        marp.stdout?.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        marp.stderr?.on('data', (data) => {
+          stderr += data.toString();
+        });
         
         marp.on("close", async (code) => {
+          console.log(`Marp CLI PDF finished with code: ${code}`);
+          if (stdout) console.log('Marp stdout:', stdout);
+          if (stderr) console.log('Marp stderr:', stderr);
+          
           if (code === 0) {
             try {
               const pdfBuffer = await fs.readFile(outputFile);
+              console.log(`Generated PDF file size: ${pdfBuffer.length} bytes`);
+              
               // Cleanup temp files
               fs.unlink(inputFile).catch(console.error);
               fs.unlink(outputFile).catch(console.error);
               resolve(pdfBuffer);
             } catch (error) {
+              console.error('Error reading PDF output:', error);
               reject(error);
             }
           } else {
-            reject(new Error(`Marp CLI exited with code ${code}`));
+            reject(new Error(`Marp CLI exited with code ${code}. Stderr: ${stderr}`));
           }
         });
 
-        marp.on("error", reject);
-      }).catch(reject);
+        marp.on("error", (error) => {
+          console.error('Marp CLI PDF spawn error:', error);
+          reject(error);
+        });
+      }).catch((error) => {
+        console.error('Error setting up PDF generation:', error);
+        reject(error);
+      });
     });
   }
 

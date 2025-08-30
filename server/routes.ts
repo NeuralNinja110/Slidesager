@@ -108,14 +108,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/presentations/:id/preview", async (req, res) => {
     try {
       const { id } = req.params;
+      console.log(`Generating preview for presentation: ${id}`);
+      
       const presentation = await storage.getPresentation(id);
       
       if (!presentation) {
+        console.log(`Presentation not found: ${id}`);
         return res.status(404).json({ error: "Presentation not found" });
       }
 
+      console.log(`Found presentation: ${presentation.title}`);
+      console.log(`Marp content length: ${presentation.marpContent.length}`);
+
       const htmlContent = await marpService.generateHTML(presentation.marpContent);
+      console.log(`Generated HTML preview, length: ${htmlContent.length}`);
+      
       res.setHeader("Content-Type", "text/html");
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
       res.send(htmlContent);
 
     } catch (error) {

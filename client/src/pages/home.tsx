@@ -92,11 +92,9 @@ export default function Home() {
             />
             
             {currentPresentationId && (
-              <>
-                <DownloadControls presentationId={currentPresentationId} />
-                <RecentGenerations onPresentationSelect={setCurrentPresentationId} />
-              </>
+              <DownloadControls presentationId={currentPresentationId} />
             )}
+            <RecentGenerations onPresentationSelect={setCurrentPresentationId} />
           </div>
         </div>
       </div>
