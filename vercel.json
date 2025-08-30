@@ -2,14 +2,9 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.ts",
+      "src": "api/simple.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": [
-          "server/**",
-          "shared/**",
-          "temp/**"
-        ],
         "maxLambdaSize": "50mb"
       }
     },
@@ -24,7 +19,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/index.ts"
+      "dest": "/api/simple.js"
     },
     {
       "src": "/(.*)",
