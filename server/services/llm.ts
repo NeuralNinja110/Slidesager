@@ -26,6 +26,38 @@ export class LLMService {
     }
   }
 
+  private extractJsonFromText(text: string): string {
+    // Remove any markdown code block formatting
+    let cleanText = text.replace(/```json\n?|```\n?/g, '').trim();
+    
+    // Try to find JSON array in the text
+    const jsonArrayRegex = /\[[\s\S]*?\]/;
+    const match = cleanText.match(jsonArrayRegex);
+    
+    if (match) {
+      return match[0];
+    }
+    
+    // If no array found, try to find JSON object with slides property
+    const jsonObjectWithSlidesRegex = /\{\s*"slides"\s*:\s*\[[\s\S]*?\]\s*\}/;
+    const slidesMatch = cleanText.match(jsonObjectWithSlidesRegex);
+    
+    if (slidesMatch) {
+      return slidesMatch[0];
+    }
+    
+    // Try to find any JSON object
+    const jsonObjectRegex = /\{[\s\S]*?\}/;
+    const objectMatch = cleanText.match(jsonObjectRegex);
+    
+    if (objectMatch) {
+      return objectMatch[0];
+    }
+    
+    // Return cleaned text if no JSON pattern found
+    return cleanText;
+  }
+
   private buildPrompt(content: string, guidance?: string, slideCountOption: SlideCountOption = "automatic"): string {
     const basePrompt = `
 Analyze the following text and break it down into slide content for a presentation.
@@ -36,15 +68,25 @@ ${content}
 ${guidance ? `Guidance: ${guidance}` : ''}
 
 Please structure the output as a JSON array of slide objects. Each slide should have:
-- title: The slide title
-- content: Main content points (markdown format)
-- layout: Suggested layout type (title, content, image, etc.)
-- notes: Optional speaker notes
+- title: The slide title (string)
+- content: Main content points in markdown format (string)
+- layout: Suggested layout type (string: "title", "content", "image", etc.)
+- notes: Optional speaker notes (string, can be empty)
 
 Ensure the slides flow logically and are appropriate for the content type and guidance provided.
 ${this.getSlideCountInstruction(slideCountOption)}
 
-Return only the JSON array, no additional text.
+IMPORTANT: Return ONLY a valid JSON array with no additional text, comments, or formatting. Example format:
+[
+  {
+    "title": "Introduction",
+    "content": "- Welcome to the presentation\\n- Overview of topics",
+    "layout": "title",
+    "notes": "Start with enthusiasm"
+  }
+]
+
+Do not include any text before or after the JSON array.
 `;
     return basePrompt;
   }
@@ -68,51 +110,111 @@ Return only the JSON array, no additional text.
   }
 
   private async generateWithOpenAI(prompt: string, model: Model, apiKey: string): Promise<SlideContent[]> {
-    const openai = new OpenAI({ apiKey });
-    
-    const response = await openai.chat.completions.create({
-      model: model as "gpt-5" | "gpt-4-turbo" | "gpt-4", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-    });
+    try {
+      const openai = new OpenAI({ apiKey });
+      
+      const response = await openai.chat.completions.create({
+        model: model as "gpt-5" | "gpt-4-turbo" | "gpt-4", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
 
-    const result = JSON.parse(response.choices[0].message.content || "[]");
-    return Array.isArray(result) ? result : result.slides || [];
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error("No content received from OpenAI");
+      }
+
+      console.log("Raw OpenAI response:", content.substring(0, 200) + "...");
+
+      const cleanJson = this.extractJsonFromText(content);
+      const result = JSON.parse(cleanJson);
+      const slides = Array.isArray(result) ? result : result.slides || [];
+      
+      if (!slides || slides.length === 0) {
+        throw new Error("No slides generated from OpenAI response");
+      }
+      
+      return slides;
+    } catch (error) {
+      console.error("Error generating with OpenAI:", error);
+      if (error instanceof SyntaxError) {
+        throw new Error("Invalid JSON response from OpenAI: " + error.message);
+      }
+      throw error;
+    }
   }
 
   private async generateWithAnthropic(prompt: string, model: Model, apiKey: string): Promise<SlideContent[]> {
-    const anthropic = new Anthropic({ apiKey });
-    
-    const response = await anthropic.messages.create({
-      model: model as "claude-sonnet-4-20250514" | "claude-3-5-sonnet-20241022" | "claude-3-opus-20240229",
-      max_tokens: 4000,
-      system: "You are a presentation expert. Return only valid JSON arrays of slide objects.",
-      messages: [{ role: 'user', content: prompt }],
-    });
+    try {
+      const anthropic = new Anthropic({ apiKey });
+      
+      const response = await anthropic.messages.create({
+        model: model as "claude-sonnet-4-20250514" | "claude-3-5-sonnet-20241022" | "claude-3-opus-20240229",
+        max_tokens: 4000,
+        system: "You are a presentation expert. Return only valid JSON arrays of slide objects.",
+        messages: [{ role: 'user', content: prompt }],
+      });
 
-    const content = response.content[0];
-    if (content.type === "text") {
-      const result = JSON.parse(content.text);
-      return Array.isArray(result) ? result : result.slides || [];
+      const content = response.content[0];
+      if (content.type !== "text" || !content.text) {
+        throw new Error("No text content received from Anthropic");
+      }
+
+      console.log("Raw Anthropic response:", content.text.substring(0, 200) + "...");
+
+      const cleanJson = this.extractJsonFromText(content.text);
+      const result = JSON.parse(cleanJson);
+      const slides = Array.isArray(result) ? result : result.slides || [];
+      
+      if (!slides || slides.length === 0) {
+        throw new Error("No slides generated from Anthropic response");
+      }
+      
+      return slides;
+    } catch (error) {
+      console.error("Error generating with Anthropic:", error);
+      if (error instanceof SyntaxError) {
+        throw new Error("Invalid JSON response from Anthropic: " + error.message);
+      }
+      throw error;
     }
-    
-    throw new Error("Failed to generate slides with Anthropic");
   }
 
   private async generateWithGemini(prompt: string, model: Model, apiKey: string): Promise<SlideContent[]> {
-    const ai = new GoogleGenAI({ apiKey });
-    
-    const response = await ai.models.generateContent({
-      model: model as "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-1.5-pro",
-      config: {
-        responseMimeType: "application/json",
-      },
-      contents: prompt,
-    });
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const response = await ai.models.generateContent({
+        model: model as "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-1.5-pro",
+        config: {
+          responseMimeType: "application/json",
+        },
+        contents: prompt,
+      });
 
-    const result = JSON.parse(response.text || "[]");
-    return Array.isArray(result) ? result : result.slides || [];
+      if (!response.text) {
+        throw new Error("No text received from Gemini");
+      }
+
+      console.log("Raw Gemini response:", response.text.substring(0, 200) + "...");
+
+      const cleanJson = this.extractJsonFromText(response.text);
+      const result = JSON.parse(cleanJson);
+      const slides = Array.isArray(result) ? result : result.slides || [];
+      
+      if (!slides || slides.length === 0) {
+        throw new Error("No slides generated from Gemini response");
+      }
+      
+      return slides;
+    } catch (error) {
+      console.error("Error generating with Gemini:", error);
+      if (error instanceof SyntaxError) {
+        throw new Error("Invalid JSON response from Gemini: " + error.message);
+      }
+      throw error;
+    }
   }
 }
 

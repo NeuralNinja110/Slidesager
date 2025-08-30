@@ -2,8 +2,22 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let text: string;
+    try {
+      text = await res.text();
+    } catch (e) {
+      text = res.statusText || "Unknown error";
+    }
+    
+    // Try to parse as JSON to get error message
+    try {
+      const errorData = JSON.parse(text);
+      const message = errorData.error || errorData.message || text;
+      throw new Error(`${res.status}: ${message}`);
+    } catch (jsonError) {
+      // If not JSON, use raw text
+      throw new Error(`${res.status}: ${text || res.statusText}`);
+    }
   }
 }
 
@@ -38,7 +52,14 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    
+    try {
+      return await res.json();
+    } catch (error) {
+      console.error("JSON parsing error:", error);
+      console.error("Response status:", res.status, res.statusText);
+      throw new Error(`Invalid JSON response: ${error instanceof Error ? error.message : "Unknown parsing error"}`);
+    }
   };
 
 export const queryClient = new QueryClient({

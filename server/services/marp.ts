@@ -4,6 +4,83 @@ import path from "path";
 import { SlideContent, TemplateStyles, SlideRange } from "@shared/schema";
 
 export class MarpService {
+  private isServerlessEnvironment(): boolean {
+    // Check for common serverless environment variables
+    return Boolean(
+      process.env.VERCEL ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.NETLIFY ||
+      process.env.RAILWAY_PROJECT_ID ||
+      process.env.CF_PAGES ||
+      process.env.FUNCTIONS_WORKER_RUNTIME ||
+      // Generic serverless indicators
+      process.env.NODE_ENV === 'production' && !process.env.PORT
+    );
+  }
+
+  private generateStaticHTML(marpContent: string): string {
+    // Generate a simple HTML presentation without Marp CLI
+    // This is a fallback for serverless environments
+    const lines = marpContent.split('\n');
+    const slides: string[] = [];
+    let currentSlide = '';
+    let isInSlide = false;
+
+    for (const line of lines) {
+      if (line.trim() === '---' && isInSlide) {
+        slides.push(currentSlide);
+        currentSlide = '';
+      } else if (line.trim().startsWith('# ')) {
+        if (currentSlide) slides.push(currentSlide);
+        currentSlide = `<section><h1>${line.replace('# ', '')}</h1>`;
+        isInSlide = true;
+      } else if (isInSlide && line.trim()) {
+        if (line.startsWith('<!--') && line.endsWith('-->')) {
+          // Skip comments (speaker notes)
+          continue;
+        }
+        currentSlide += `<p>${line}</p>`;
+      }
+    }
+    
+    if (currentSlide) slides.push(currentSlide + '</section>');
+
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Presentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f0f0f0; }
+        .presentation { display: flex; flex-direction: column; min-height: 100vh; }
+        section { 
+            min-height: 100vh; 
+            padding: 60px; 
+            background: white; 
+            margin-bottom: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        h1 { font-size: 2.5em; margin-bottom: 30px; color: #333; }
+        p { font-size: 1.2em; line-height: 1.6; color: #555; }
+        @media print { 
+            section { page-break-after: always; margin-bottom: 0; box-shadow: none; } 
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        ${slides.join('\n        ')}
+    </div>
+</body>
+</html>
+`;
+  }
   async generatePresentation(
     slides: SlideContent[],
     styles: TemplateStyles,
@@ -68,6 +145,12 @@ blockquote {
   }
 
   async generateHTML(marpContent: string): Promise<string> {
+    // Check if we're in a serverless environment
+    if (this.isServerlessEnvironment()) {
+      console.log("Generating HTML in serverless mode (no external CLI)");
+      return this.generateStaticHTML(marpContent);
+    }
+
     return new Promise((resolve, reject) => {
       const tempDir = path.join(process.cwd(), "temp");
       const timestamp = Date.now();
@@ -134,6 +217,10 @@ blockquote {
   }
 
   async generatePPTX(marpContent: string, slideRanges?: SlideRange[]): Promise<Buffer> {
+    if (this.isServerlessEnvironment()) {
+      throw new Error("PPTX generation is not available in serverless environments. Please download the presentation as HTML or use a local development environment for PPTX export.");
+    }
+
     return new Promise((resolve, reject) => {
       const tempDir = path.join(process.cwd(), "temp");
       const timestamp = Date.now();
@@ -202,6 +289,10 @@ blockquote {
   }
 
   async generatePDF(marpContent: string, slideRanges?: SlideRange[]): Promise<Buffer> {
+    if (this.isServerlessEnvironment()) {
+      throw new Error("PDF generation is not available in serverless environments. Please download the presentation as HTML or use a local development environment for PDF export.");
+    }
+
     return new Promise((resolve, reject) => {
       const tempDir = path.join(process.cwd(), "temp");
       const timestamp = Date.now();
